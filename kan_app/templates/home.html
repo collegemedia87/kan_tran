@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDF Upload</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      .progress {
+        display: none;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container mt-5">
+      <h2>PDF Upload</h2>
+      <form id="uploadForm" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label for="pdfFile" class="form-label"
+            >Select PDF File (Max 20 MB)</label
+          >
+          <input
+            type="file"
+            class="form-control"
+            id="pdfFile"
+            name="pdfFile"
+            accept=".pdf"
+            required
+          />
+        </div>
+        <button type="submit" class="btn btn-primary">Upload</button>
+      </form>
+      <div class="progress">
+        <div
+          class="progress-bar"
+          role="progressbar"
+          style="width: 0%"
+          aria-valuenow="0"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        ></div>
+      </div>
+      <textarea
+        id="successTextArea"
+        class="form-control"
+        rows="3"
+        cols="10"
+        style="display: none"
+      ></textarea>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      const csrfToken = "{{ csrf_token }}";
+
+      const uploadForm = document.getElementById("uploadForm");
+      const progressBar = document.querySelector(".progress-bar");
+      const progressContainer = document.querySelector(".progress");
+
+      uploadForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const formData = new FormData(uploadForm);
+        const xhr = new XMLHttpRequest();
+
+        xhr.upload.addEventListener("progress", (event) => {
+          if (event.lengthComputable) {
+            const percent = (event.loaded / event.total) * 100;
+            progressBar.style.width = percent + "%";
+            progressBar.setAttribute("aria-valuenow", percent);
+          }
+        });
+
+        xhr.onreadystatechange = () => {
+          if (xhr.readyState === XMLHttpRequest.DONE) {
+            if (xhr.status === 200) {
+              // Handle successful upload here
+              console.log("Upload successful");
+              const responseJson = JSON.parse(xhr.responseText); // Parse the JSON response
+              const message = responseJson.message; // Get the message from the response
+              showSuccessMessage(message);
+            } else {
+              // Handle upload error here
+              console.error("Upload failed");
+            }
+            progressContainer.style.display = "none";
+            progressBar.style.width = "0%";
+            progressBar.setAttribute("aria-valuenow", "0");
+          }
+        };
+
+        xhr.open("POST", ""); // Replace with your upload URL
+        xhr.setRequestHeader("X-CSRFToken", csrfToken); // Set the CSRF token
+        xhr.send(formData);
+
+        progressContainer.style.display = "block";
+      });
+
+      function showSuccessMessage(message) {
+        const successTextArea = document.getElementById("successTextArea");
+        successTextArea.value = message;
+        successTextArea.style.display = "block";
+      }
+    </script>
+  </body>
+</html>
